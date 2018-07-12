@@ -1,7 +1,7 @@
 {
   "name": "adjusttofit",
   "description": "A quick Sketch plugin to resize text layers, groups, and artboards to fit their content. Also supports nested resizing.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/andyault/sketch-adjusttofit.git"
