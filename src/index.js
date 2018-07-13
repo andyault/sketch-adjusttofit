@@ -104,17 +104,28 @@ app.adjustToFit = function(layer) {
  * @param [SketchLayer] layer - the text layer to adjust
  */
 app.adjustTextToFit = function(layer) {
+	let firstFrag = layer.fragments[0];
+	let lastFrag = layer.fragments[layer.fragments.length - 1];
+
 	//adjust y first for middle/bottom aligned text
 	let oldY = layer.sketchObject.frame().y();
-	let newY = oldY + layer.fragments[0].rect.y;
-
-	layer.sketchObject.frame().y = newY;
+	let newY = oldY + firstFrag.rect.y;
 
 	//add up heights of all lines, set new height
 	let oldHeight = layer.sketchObject.frame().height();
-	let newHeight = layer.fragments.reduce((sum, frag) => (sum + frag.rect.height), 0);
 
-	layer.sketchObject.frame().height = newHeight;
+	//this doesn't work because there can be space between lines
+	//(as in empty lines aren't fragments)
+	//let newHeight = layer.fragments.reduce((sum, frag) => (sum + frag.rect.height), 0);
+
+	//instead, just do lastFrag.y + lastFrag.height and subtract firstFrag.y for
+	//non-top-aligned text
+	let newHeight = lastFrag.rect.y + lastFrag.rect.height - firstFrag.rect.y;
+
+	if(newHeight !== oldHeight) {
+		layer.sketchObject.frame().y = newY;
+		layer.sketchObject.frame().height = newHeight;
+	}
 }
 
 /**

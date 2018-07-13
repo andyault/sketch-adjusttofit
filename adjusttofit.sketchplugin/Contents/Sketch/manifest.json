@@ -1,9 +1,9 @@
 {
-  "name": "adjusttofit",
+  "name": "Adjust to Fit",
   "description": "A quick Sketch plugin to resize text layers, groups, and artboards to fit their content. Also supports nested resizing.",
   "author": "Andrew Ault",
   "homepage": "https://github.com/andyault",
-  "version": "1.0",
+  "version": "1.0.3",
   "identifier": "com.andyault.adjusttofit",
   "icon": "icon.png",
   "compatibleVersion": 3,
