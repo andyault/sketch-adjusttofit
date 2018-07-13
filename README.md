@@ -16,5 +16,9 @@ A quick Sketch plugin to resize text layers, groups, and artboards to fit their 
 
 ## Changelog
 
-#### 1.0
+#### 1.1.0
+* Reworked textbox resize logic to fix a bug with blank lines
+* Updated gifs
+
+#### 1.0.0
 Init :)
