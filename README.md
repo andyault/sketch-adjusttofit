@@ -4,6 +4,9 @@
 
 A quick Sketch plugin to resize text layers, groups, and artboards to fit their content. Also supports nested resizing.
 
+## Installation
+Head over to the [releases page](https://github.com/andyault/sketch-adjusttofit/releases) and follow the instructions
+
 ## Usage
 
 `⌘ + ⇧ + F`: Resize selected layer(s):
