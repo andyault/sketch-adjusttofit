@@ -3,34 +3,56 @@ const sketch = require('sketch');
 const util = require('./util');
 
 //global object
-var app = {};
+var app = {
+	useCustomFunction: false
+};
 
 //public methods
 /**
  * call adjustToFit on the selected layers
  */
 app.adjustSelected = function() {
-	let document = sketch.getSelectedDocument();
-	let layers = document.selectedLayers;
-
-	let results = app.adjustLayers(layers, false);
-
-	sketch.UI.message(app.resultsString(results));
+	app.runPlugin(false, false);
 };
 
 /**
  * call adjustToFit on the selected layers and their children
  */
 app.adjustNested = function() {
+	app.runPlugin(false, true);
+};
+
+/**
+ * call custom adjustToFit that includes invisible children on the selected layers
+ */
+app.adjustSelectedInvisible = function() {
+	app.runPlugin(true, false);
+};
+
+/**
+ * call custom adjustToFit that includes invisible children on the selected layers and their children
+ */
+app.adjustNestedInvisible = function() {
+	app.runPlugin(true, true);
+};
+
+//private methods
+/**
+ * Call adjustLayers and print results
+ * @param [boolean] includeInvisible - whether to use custom adjustToFit function
+ * @param [boolean] nested - whether to adjust children
+ */
+app.runPlugin = function(includeInvisible, nested) {
 	let document = sketch.getSelectedDocument();
 	let layers = document.selectedLayers;
 
-	let results = app.adjustLayers(layers, true);
+	app.useCustomFunction = includeInvisible;
+
+	let results = app.adjustLayers(layers, nested);
 
 	sketch.UI.message(app.resultsString(results));
 };
 
-//private methods
 /**
  * Recursive functions to call adjustToFit on the given layers and return the results
  * @param [SketchLayer[]] layers - the layers to adjust
@@ -88,15 +110,56 @@ app.adjustLayers = function(layers, nested) {
  * @returns [boolean] whether or not the layer was adjusted
  */
 app.adjustToFit = function(layer) {
-	if(layer.type !== 'Group' && layer.type !== 'Text' && layer.type !== 'Artboard')
-		return false;
+	switch(layer.type) {
+		case 'Group':
+		case 'Artboard':
+		case 'SymbolMaster':
+			app.adjustLayerToFit(layer);
+			break;
 
-	if(layer.type === 'Group' || layer.type === 'Artboard')
-		layer.adjustToFit();
-	else
-		app.adjustTextToFit(layer);
+		case 'Text':
+			app.adjustTextToFit(layer);
+			break;
+
+		default:
+			return false;
+	}
 
 	return true;
+};
+
+/**
+ * Adjust a layer based on its contents
+ * @param [SketchLayer] layer - the layer to adjust
+ */
+app.adjustLayerToFit = function(layer) {
+	if(app.useCustomFunction) {
+		//make our own adjustToFit function
+		//create a new rectangle for the layer
+		let newFrame = { x: Infinity, y: Infinity, width: 0, height: 0 };
+
+		layer.layers.forEach((child) => {
+			newFrame.x      = Math.min(newFrame.x,      child.frame.x);
+			newFrame.y      = Math.min(newFrame.y,      child.frame.y);
+			newFrame.width  = Math.max(newFrame.width,  child.frame.x + child.frame.width);
+			newFrame.height = Math.max(newFrame.height, child.frame.y + child.frame.height);
+		});
+
+		//adjust everything to new coordinates
+		newFrame.width -= newFrame.x;
+		newFrame.height -= newFrame.y;
+
+		layer.layers.forEach((child) => {
+			child.frame.x -= newFrame.x;
+			child.frame.y -= newFrame.y;
+		});
+
+		//apply new rectangle
+		layer.frame.offset(newFrame.x, newFrame.y)
+		layer.frame.width = newFrame.width;
+		layer.frame.height = newFrame.height;
+	} else
+		layer.adjustToFit();
 };
 
 /**
@@ -108,11 +171,11 @@ app.adjustTextToFit = function(layer) {
 	let lastFrag = layer.fragments[layer.fragments.length - 1];
 
 	//adjust y first for middle/bottom aligned text
-	let oldY = layer.sketchObject.frame().y();
+	let oldY = layer.frame.y;
 	let newY = oldY + firstFrag.rect.y;
 
 	//add up heights of all lines, set new height
-	let oldHeight = layer.sketchObject.frame().height();
+	let oldHeight = layer.frame.height;
 
 	//this doesn't work because there can be space between lines
 	//(as in empty lines aren't fragments)
@@ -123,10 +186,10 @@ app.adjustTextToFit = function(layer) {
 	let newHeight = lastFrag.rect.y + lastFrag.rect.height - firstFrag.rect.y;
 
 	if(newHeight !== oldHeight) {
-		layer.sketchObject.frame().y = newY;
-		layer.sketchObject.frame().height = newHeight;
+		layer.frame.y = newY;
+		layer.frame.height = newHeight;
 	}
-}
+};
 
 /**
  * Build a string from a results object returned from #adjustLayers
@@ -150,6 +213,7 @@ app.resultsString = function(results) {
 
 			//lazy
 			if(cat === 'text') cat = 'text layer';
+			if(cat === 'symbolmaster') cat = 'symbol';
 
 			plurals.push(util.pluralize(num, cat));
 		}
@@ -168,3 +232,5 @@ app.resultsString = function(results) {
 //done
 module.exports.adjustSelected = app.adjustSelected;
 module.exports.adjustNested = app.adjustNested;
+module.exports.adjustSelectedInvisible = app.adjustSelectedInvisible;
+module.exports.adjustNestedInvisible = app.adjustNestedInvisible;

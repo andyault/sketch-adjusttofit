@@ -104,17 +104,16 @@ var sketch = __webpack_require__(/*! sketch */ "sketch");
 var util = __webpack_require__(/*! ./util */ "./src/util.js"); //global object
 
 
-var app = {}; //public methods
+var app = {
+  useCustomFunction: false
+}; //public methods
 
 /**
  * call adjustToFit on the selected layers
  */
 
 app.adjustSelected = function () {
-  var document = sketch.getSelectedDocument();
-  var layers = document.selectedLayers;
-  var results = app.adjustLayers(layers, false);
-  sketch.UI.message(app.resultsString(results));
+  app.runPlugin(false, false);
 };
 /**
  * call adjustToFit on the selected layers and their children
@@ -122,12 +121,39 @@ app.adjustSelected = function () {
 
 
 app.adjustNested = function () {
-  var document = sketch.getSelectedDocument();
-  var layers = document.selectedLayers;
-  var results = app.adjustLayers(layers, true);
-  sketch.UI.message(app.resultsString(results));
+  app.runPlugin(false, true);
+};
+/**
+ * call custom adjustToFit that includes invisible children on the selected layers
+ */
+
+
+app.adjustSelectedInvisible = function () {
+  app.runPlugin(true, false);
+};
+/**
+ * call custom adjustToFit that includes invisible children on the selected layers and their children
+ */
+
+
+app.adjustNestedInvisible = function () {
+  app.runPlugin(true, true);
 }; //private methods
 
+/**
+ * Call adjustLayers and print results
+ * @param [boolean] includeInvisible - whether to use custom adjustToFit function
+ * @param [boolean] nested - whether to adjust children
+ */
+
+
+app.runPlugin = function (includeInvisible, nested) {
+  var document = sketch.getSelectedDocument();
+  var layers = document.selectedLayers;
+  app.useCustomFunction = includeInvisible;
+  var results = app.adjustLayers(layers, nested);
+  sketch.UI.message(app.resultsString(results));
+};
 /**
  * Recursive functions to call adjustToFit on the given layers and return the results
  * @param [SketchLayer[]] layers - the layers to adjust
@@ -179,9 +205,57 @@ app.adjustLayers = function (layers, nested) {
 
 
 app.adjustToFit = function (layer) {
-  if (layer.type !== 'Group' && layer.type !== 'Text' && layer.type !== 'Artboard') return false;
-  if (layer.type === 'Group' || layer.type === 'Artboard') layer.adjustToFit();else app.adjustTextToFit(layer);
+  switch (layer.type) {
+    case 'Group':
+    case 'Artboard':
+    case 'SymbolMaster':
+      app.adjustLayerToFit(layer);
+      break;
+
+    case 'Text':
+      app.adjustTextToFit(layer);
+      break;
+
+    default:
+      return false;
+  }
+
   return true;
+};
+/**
+ * Adjust a layer based on its contents
+ * @param [SketchLayer] layer - the layer to adjust
+ */
+
+
+app.adjustLayerToFit = function (layer) {
+  if (app.useCustomFunction) {
+    //make our own adjustToFit function
+    //create a new rectangle for the layer
+    var newFrame = {
+      x: Infinity,
+      y: Infinity,
+      width: 0,
+      height: 0
+    };
+    layer.layers.forEach(function (child) {
+      newFrame.x = Math.min(newFrame.x, child.frame.x);
+      newFrame.y = Math.min(newFrame.y, child.frame.y);
+      newFrame.width = Math.max(newFrame.width, child.frame.x + child.frame.width);
+      newFrame.height = Math.max(newFrame.height, child.frame.y + child.frame.height);
+    }); //adjust everything to new coordinates
+
+    newFrame.width -= newFrame.x;
+    newFrame.height -= newFrame.y;
+    layer.layers.forEach(function (child) {
+      child.frame.x -= newFrame.x;
+      child.frame.y -= newFrame.y;
+    }); //apply new rectangle
+
+    layer.frame.offset(newFrame.x, newFrame.y);
+    layer.frame.width = newFrame.width;
+    layer.frame.height = newFrame.height;
+  } else layer.adjustToFit();
 };
 /**
  * Adjust a textbot based on its contents
@@ -193,10 +267,10 @@ app.adjustTextToFit = function (layer) {
   var firstFrag = layer.fragments[0];
   var lastFrag = layer.fragments[layer.fragments.length - 1]; //adjust y first for middle/bottom aligned text
 
-  var oldY = layer.sketchObject.frame().y();
+  var oldY = layer.frame.y;
   var newY = oldY + firstFrag.rect.y; //add up heights of all lines, set new height
 
-  var oldHeight = layer.sketchObject.frame().height(); //this doesn't work because there can be space between lines
+  var oldHeight = layer.frame.height; //this doesn't work because there can be space between lines
   //(as in empty lines aren't fragments)
   //let newHeight = layer.fragments.reduce((sum, frag) => (sum + frag.rect.height), 0);
   //instead, just do lastFrag.y + lastFrag.height and subtract firstFrag.y for
@@ -205,8 +279,8 @@ app.adjustTextToFit = function (layer) {
   var newHeight = lastFrag.rect.y + lastFrag.rect.height - firstFrag.rect.y;
 
   if (newHeight !== oldHeight) {
-    layer.sketchObject.frame().y = newY;
-    layer.sketchObject.frame().height = newHeight;
+    layer.frame.y = newY;
+    layer.frame.height = newHeight;
   }
 };
 /**
@@ -230,6 +304,7 @@ app.resultsString = function (results) {
       var num = results[cat]; //lazy
 
       if (cat === 'text') cat = 'text layer';
+      if (cat === 'symbolmaster') cat = 'symbol';
       plurals.push(util.pluralize(num, cat));
     }
   } //only show relevant parts, join with comma
@@ -245,6 +320,8 @@ app.resultsString = function (results) {
 
 module.exports.adjustSelected = app.adjustSelected;
 module.exports.adjustNested = app.adjustNested;
+module.exports.adjustSelectedInvisible = app.adjustSelectedInvisible;
+module.exports.adjustNestedInvisible = app.adjustNestedInvisible;
 
 /***/ }),
 
@@ -313,6 +390,8 @@ module.exports = require("sketch");
 }
 that['adjustSelected'] = __skpm_run.bind(this, 'adjustSelected');
 that['onRun'] = __skpm_run.bind(this, 'default');
-that['adjustNested'] = __skpm_run.bind(this, 'adjustNested')
+that['adjustNested'] = __skpm_run.bind(this, 'adjustNested');
+that['adjustSelectedInvisible'] = __skpm_run.bind(this, 'adjustSelectedInvisible');
+that['adjustNestedInvisible'] = __skpm_run.bind(this, 'adjustNestedInvisible')
 
 //# sourceMappingURL=index.js.map

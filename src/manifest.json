@@ -23,10 +23,29 @@
       "shortcut": "command alt shift f",
       "script": "./index.js",
       "handler": "adjustNested"
+    },
+    {
+      "name": "Selected Layers (include invisible)",
+      "identifier": "adjust-selected-invisible",
+      "shortcut": "ctrl shift f",
+      "script": "./index.js",
+      "handler": "adjustSelectedInvisible"
+    },
+    {
+      "name": "Nested Layers (include invisible)",
+      "identifier": "adjust-nested-invisible",
+      "shortcut": "ctrl alt shift f",
+      "script": "./index.js",
+      "handler": "adjustNestedInvisible"
     }
   ],
   "menu": {
     "title": "Adjust To Fit",
-    "items": [ "adjust-selected", "adjust-nested" ]
+    "items": [
+      "adjust-selected",
+      "adjust-nested",
+      "adjust-selected-invisible",
+      "adjust-nested-invisible"
+    ]
   }
 }
