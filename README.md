@@ -9,15 +9,15 @@ Head over to the [releases page](https://github.com/andyault/sketch-adjusttofit/
 
 ## Usage
 
-`⌘ + ⇧ + F`: Resize selected layer(s):
+`⌃ + ⇧ + F`: Resize selected layer(s) including invisible children
 
-`⌃ + ⇧ + F`: Resize selected layer(s) including invisible children:
+`⌘ + ⇧ + F`: Resize selected layer(s):
 
 ![selected-gif](https://github.com/andyault/sketch-adjusttofit/blob/master/selected.gif)
 
-`⌘ + ⌥ + ⇧ + F`: Resize selected layer(s) with nesting:
+`⌃ + ⌥ + ⇧ + F`: Resize selected layer(s) with nesting including invisible children
 
-`⌃ + ⌥ + ⇧ + F`: Resize selected layer(s) with nesting including invisible children:
+`⌘ + ⌥ + ⇧ + F`: Resize selected layer(s) with nesting:
 
 ![nested-gif](https://github.com/andyault/sketch-adjusttofit/blob/master/nested.gif)
 
